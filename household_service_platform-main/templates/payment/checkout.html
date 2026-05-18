@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout - HomeCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .checkout-card {
+        border-radius: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(219, 39, 119, 0.08);
+        background: #ffffff;
+    }
+    .invoice-header {
+        background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+        color: white;
+        border-radius: 23px 23px 0 0;
+        padding: 30px;
+    }
+    .service-badge {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-weight: 600;
+        padding: 6px 16px;
+        border-radius: 50px;
+        display: inline-block;
+        font-size: 0.85rem;
+    }
+    .invoice-body {
+        padding: 40px;
+    }
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 16px 0;
+        border-bottom: 1px dashed #e2e8f0;
+    }
+    .detail-row:last-of-type {
+        border-bottom: none;
+    }
+    .detail-label {
+        color: #64748b;
+        font-weight: 500;
+    }
+    .detail-value {
+        color: #1e293b;
+        font-weight: 600;
+        text-align: right;
+    }
+    .price-total {
+        background-color: #fdf2f8;
+        border: 1px solid #fbcfe8;
+        border-radius: 16px;
+        padding: 20px;
+        margin-top: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .price-total-label {
+        font-size: 1.1rem;
+        color: #9d174d;
+        font-weight: 700;
+    }
+    .price-total-value {
+        font-size: 1.8rem;
+        color: #db2777;
+        font-weight: 800;
+    }
+    .pay-btn {
+        background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+        border: none;
+        border-radius: 14px;
+        color: white;
+        font-weight: 700;
+        font-size: 1.1rem;
+        padding: 16px;
+        width: 100%;
+        box-shadow: 0 10px 20px rgba(219, 39, 119, 0.3);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .pay-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 25px rgba(219, 39, 119, 0.4);
+    }
+    .pay-btn i {
+        font-size: 1.3rem;
+        margin-right: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 my-3">
+    <div class="row justify-content-center" data-aos="fade-up">
+        <div class="col-lg-7 col-md-9 col-12">
+            <div class="card checkout-card">
+                <!-- Invoice Header -->
+                <div class="invoice-header">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="service-badge">{{ booking.service.category.name }}</span>
+                        <small class="text-white-50 fw-semibold">Booking ID: #{{ booking.id }}</small>
+                    </div>
+                    <h2 class="mb-1 font-poppins text-white" style="font-weight: 800;">Complete Payment</h2>
+                    <p class="mb-0 text-white-50" style="font-size: 0.95rem;">You are booking a trusted professional in Belagaum</p>
+                </div>
+                
+                <!-- Invoice Body -->
+                <div class="invoice-body">
+                    <h4 class="mb-3 font-poppins fw-bold" style="color: #1e293b; border-left: 4px solid #db2777; padding-left: 10px;">Booking Details</h4>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">Service Required</span>
+                        <span class="detail-value text-primary">{{ booking.service.name }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Scheduled For</span>
+                        <span class="detail-value">{{ booking.scheduled_datetime|date:"d M Y, h:i A" }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Address</span>
+                        <span class="detail-value text-wrap" style="max-width: 60%;">{{ booking.address }}</span>
+                    </div>
+                    {% if booking.instructions %}
+                    <div class="detail-row">
+                        <span class="detail-label">Special Instructions</span>
+                        <span class="detail-value text-wrap text-muted" style="max-width: 60%; font-style: italic;">{{ booking.instructions }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Pricing breakdown -->
+                    <div class="price-total">
+                        <span class="price-total-label"><i class="bi bi-wallet2 me-2"></i>Total Payable</span>
+                        <span class="price-total-value">₹{{ booking.total_price }}</span>
+                    </div>
+                    
+                    <!-- Pay Button -->
+                    <div class="mt-4 pt-2">
+                        <button id="rzp-button" class="pay-btn">
+                            <i class="bi bi-shield-lock-fill"></i> Secure Pay with Razorpay
+                        </button>
+                    </div>
+                    
+                    <p class="text-center text-muted mt-3 mb-0" style="font-size: 0.8rem;">
+                        <i class="bi bi-lock-fill text-success"></i> 256-bit SSL encrypted. Payment managed securely by Razorpay.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var options = {
+            "key": "{{ razorpay_key_id }}",
+            "amount": "{{ razorpay_amount }}",
+            "currency": "INR",
+            "name": "HomeCare Platform",
+            "description": "Secure payment for booking #{{ booking.id }}",
+            "image": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/icons/house-heart-fill.svg",
+            "order_id": "{{ order_id }}",
+            "handler": function (response){
+                // Activate the loading screen overlay during verification
+                document.getElementById('global-loader').classList.add('active');
+                
+                // POST verification payload
+                fetch("{% url 'payments:verify_payment' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        window.location.href = "{% url 'payments:payment_success' %}?booking_id={{ booking.id }}&payment_id=" + response.razorpay_payment_id;
+                    } else {
+                        window.location.href = "{% url 'payments:payment_failed' %}?booking_id={{ booking.id }}";
+                    }
+                })
+                .catch(err => {
+                    console.error("Verification error:", err);
+                    window.location.href = "{% url 'payments:payment_failed' %}?booking_id={{ booking.id }}";
+                });
+            },
+            "prefill": {
+                "name": "{{ customer_name }}",
+                "email": "{{ customer_email }}",
+                "contact": "{{ customer_phone }}"
+            },
+            "theme": {
+                "color": "#E91E8C"  // Vivid Pink matching brand styles
+            },
+            "modal": {
+                "ondismiss": function(){
+                    window.location.href = "{% url 'payments:payment_failed' %}?booking_id={{ booking.id }}";
+                }
+            }
+        };
+        
+        var rzp = new Razorpay(options);
+        
+        document.getElementById('rzp-button').onclick = function(e){
+            rzp.open();
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile.user.get_full_name|default:profile.user.username }}'s Profile - HomeCare{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-hero {
+        background: linear-gradient(135deg, #198754 0%, #146c43 100%);
+        color: white;
+        border-radius: 24px;
+    }
+    
+    .rating-number {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: #fbbf24;
+        line-height: 1;
+    }
+    
+    .review-avatar-bubble {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #198754;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.25rem;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    .card-premium {
+        border-radius: 20px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+    }
+    
+    .badge-premium {
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5 min-vh-100">
+    
+    <!-- Breadcrumbs -->
+    <div class="mb-4">
+        <a href="{% url 'home' %}" class="text-decoration-none text-muted small fw-semibold">Home</a>
+        <span class="text-muted mx-2">/</span>
+        <span class="text-dark small fw-semibold">Service Provider Profile</span>
+    </div>
+
+    <!-- Hero Card Profile -->
+    <div class="card border-0 profile-hero shadow-sm p-4 p-md-5 mb-5">
+        <div class="row align-items-center g-4">
+            
+            <!-- Avatar Section -->
+            <div class="col-md-auto text-center text-md-start">
+                <div class="position-relative d-inline-block">
+                    {% if profile.user.profile_picture %}
+                        <img src="{{ profile.user.profile_picture.url }}" alt="{{ profile.user.get_full_name }}" class="rounded-circle border border-4 border-white shadow" style="width: 140px; height: 140px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center border border-4 border-white shadow mx-auto" style="width: 140px; height: 140px; font-size: 4rem;">
+                            <i class="bi bi-person-circle"></i>
+                        </div>
+                    {% endif %}
+                    
+                    {% if profile.verification_status == 'VERIFIED' %}
+                        <span class="position-absolute bottom-0 end-0 bg-success text-white rounded-circle border border-2 border-white d-flex align-items-center justify-content-center shadow-sm" style="width: 35px; height: 35px;" title="Verified Professional">
+                            <i class="bi bi-patch-check-fill fs-5"></i>
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Identity details -->
+            <div class="col text-center text-md-start">
+                <div class="d-flex flex-column flex-md-row align-items-center mb-2">
+                    <h1 class="fw-extrabold mb-0 me-2">{{ profile.user.get_full_name|default:profile.user.username }}</h1>
+                    {% if profile.verification_status == 'VERIFIED' %}
+                        <span class="badge bg-white text-success rounded-pill px-3 py-1 fw-bold fs-7 mt-2 mt-md-0"><i class="bi bi-shield-fill-check me-1"></i> Verified Pro</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold fs-7 mt-2 mt-md-0"><i class="bi bi-clock-history me-1"></i> Pending Verification</span>
+                    {% endif %}
+                </div>
+
+                <p class="mb-3 lead opacity-90"><i class="bi bi-geo-alt me-1"></i> Based in Belagavi, Karnataka</p>
+                
+                <!-- Highlights strip -->
+                <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-3">
+                    <span class="bg-white text-success badge-premium px-3 py-2 shadow-sm"><i class="bi bi-calendar3 me-1"></i> {{ profile.experience_years }} Year{{ profile.experience_years|pluralize }} Experience</span>
+                    <span class="bg-white text-success badge-premium px-3 py-2 shadow-sm"><i class="bi bi-cash-stack me-1"></i> ₹{{ profile.base_rate_per_hour }}/Hour Base Rate</span>
+                    <span class="bg-white text-success badge-premium px-3 py-2 shadow-sm"><i class="bi bi-star-fill text-warning me-1"></i> {{ profile.average_rating }} / 5.0 Rating</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Main Content Details Grid -->
+    <div class="row g-4">
+        
+        <!-- Left Column: About and Skills -->
+        <div class="col-lg-4">
+            
+            <!-- Bio Card -->
+            <div class="card card-premium p-4 mb-4 bg-white">
+                <h5 class="fw-bold text-success mb-3"><i class="bi bi-info-circle me-1"></i> About Professional</h5>
+                <p class="text-secondary small mb-0">{{ profile.bio|default:"No professional bio provided yet." }}</p>
+            </div>
+
+            <!-- Skills Card -->
+            <div class="card card-premium p-4 mb-4 bg-white">
+                <h5 class="fw-bold text-success mb-3"><i class="bi bi-mortarboard me-1"></i> Core Specialties</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for skill in profile.skills.split %}
+                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem;">
+                            {{ skill|cut:","|title }}
+                        </span>
+                    {% empty %}
+                        <span class="text-muted small">No specific specialties listed.</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Areas Coverage -->
+            <div class="card card-premium p-4 bg-white">
+                <h5 class="fw-bold text-success mb-3"><i class="bi bi-map me-1"></i> Active Work Locations</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for area in profile.service_areas.all %}
+                        <span class="badge bg-dark bg-opacity-10 text-dark rounded-pill px-3 py-2 fw-semibold" style="font-size: 0.8rem;">
+                            <i class="bi bi-geo-alt me-1"></i> {{ area.name }}
+                        </span>
+                    {% empty %}
+                        <span class="text-muted small">All areas in Belagavi</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Ratings & Customer Reviews -->
+        <div class="col-lg-8">
+            
+            <!-- Overall Rating Stats Summary -->
+            <div class="card card-premium p-4 mb-4 bg-white">
+                <h5 class="fw-bold text-success mb-4"><i class="bi bi-star-fill text-warning me-1"></i> Ratings Summary</h5>
+                <div class="row align-items-center g-4">
+                    
+                    <!-- Average Big Widget -->
+                    <div class="col-sm-auto text-center border-end-md px-4">
+                        <div class="rating-number">{{ profile.average_rating }}</div>
+                        <div class="text-warning my-2" style="font-size: 1.25rem;">
+                            <!-- Star widgets rendered based on rating -->
+                            {% if profile.average_rating >= 4.5 %}
+                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                            {% elif profile.average_rating >= 3.5 %}
+                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star"></i>
+                            {% elif profile.average_rating >= 2.5 %}
+                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star"></i><i class="bi bi-star"></i>
+                            {% elif profile.average_rating >= 1.5 %}
+                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i>
+                            {% elif profile.average_rating > 0 %}
+                                <i class="bi bi-star-fill"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i>
+                            {% else %}
+                                <i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i><i class="bi bi-star"></i>
+                            {% endif %}
+                        </div>
+                        <span class="text-secondary small fw-semibold">Average Rating</span>
+                    </div>
+
+                    <!-- Reviews count summary text -->
+                    <div class="col-sm px-4">
+                        <h4 class="fw-bold mb-1 text-dark">{{ reviews.count }} Customer Review{{ reviews.count|pluralize }}</h4>
+                        <p class="text-muted small mb-0">100% of reviews are submitted by verified HomeCare customers who completed a booking with {{ profile.user.get_full_name|default:profile.user.username }}.</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Customer Reviews Timeline list -->
+            <div class="card card-premium p-4 bg-white">
+                <h5 class="fw-bold text-success mb-4"><i class="bi bi-chat-left-heart me-1"></i> Customer Feedback</h5>
+                
+                {% if reviews %}
+                    <div class="d-flex flex-column gap-4">
+                        {% for review in reviews %}
+                            <div class="pb-4 {% if not forloop.last %}border-bottom border-light{% endif %}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    
+                                    <!-- User Bubble + Name -->
+                                    <div class="d-flex align-items-center">
+                                        <div class="review-avatar-bubble me-3">
+                                            {{ review.customer.get_full_name|slice:":1"|upper|default:review.customer.username|slice:":1"|upper }}
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0 text-dark">{{ review.customer.get_full_name|default:review.customer.username }}</h6>
+                                            <span class="text-muted small d-inline-flex align-items-center mt-1">
+                                                <i class="bi bi-shield-check text-success me-1"></i> Verified Booking customer
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Stars for the specific review -->
+                                    <div class="text-end">
+                                        <div class="text-warning small mb-1">
+                                            {% if review.rating == 5 %}
+                                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                                            {% elif review.rating == 4 %}
+                                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star"></i>
+                                            {% elif review.rating == 3 %}
+                                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star text-muted opacity-50"></i><i class="bi bi-star text-muted opacity-50"></i>
+                                            {% elif review.rating == 2 %}
+                                                <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star text-muted opacity-50"></i><i class="bi bi-star text-muted opacity-50"></i><i class="bi bi-star text-muted opacity-50"></i>
+                                            {% else %}
+                                                <i class="bi bi-star-fill"></i><i class="bi bi-star text-muted opacity-50"></i><i class="bi bi-star text-muted opacity-50"></i><i class="bi bi-star text-muted opacity-50"></i><i class="bi bi-star text-muted opacity-50"></i>
+                                            {% endif %}
+                                        </div>
+                                        <span class="text-secondary small opacity-75">{{ review.created_at|date:"M d, Y" }}</span>
+                                    </div>
+
+                                </div>
+
+                                <!-- Review Comment Description -->
+                                <p class="text-secondary small mt-3 mb-0" style="line-height: 1.6; padding-left: 62px;">
+                                    {% if review.comment %}
+                                        "{{ review.comment }}"
+                                    {% else %}
+                                        <span class="text-muted fst-italic">Reviewed with no written comment.</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- No reviews empty state -->
+                    <div class="text-center py-5">
+                        <div class="text-secondary mb-3" style="font-size: 2.5rem;"><i class="bi bi-chat-left-dots"></i></div>
+                        <h6 class="fw-bold text-dark">No Reviews Yet</h6>
+                        <p class="text-muted small mb-0">{{ profile.user.get_full_name|default:profile.user.username }} hasn't received any reviews yet. Be the first to book this provider!</p>
+                    </div>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
