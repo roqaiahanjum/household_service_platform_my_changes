@@ -1,8 +1,0 @@
-Django>=5.0
-djangorestframework
-django-cors-headers
-stripe
-drf-yasg
-django-crispy-forms
-crispy-bootstrap5
-Pillow
