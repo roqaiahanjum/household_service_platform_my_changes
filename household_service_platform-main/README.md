@@ -25,15 +25,29 @@
 
 ## 🚀 Key Features
 
-* 🔐 **Multi-Role Authentication:** Secure login, registration, and onboarding for Customers, Service Providers (Workers), and Administrators.
-* 📅 **Seamless Booking Engine:** Fully interactive service browsing with custom-priced visits, hourly rates, or daily pricing plans.
-* 📍 **Location-Based Matching:** Smart provider allocation utilizing local regions/neighborhoods in Belagavi.
-* 💳 **Razorpay Integration:** Secure online payment gateway for digital transactions.
-* 💬 **Verified Testimonials:** Live review system with star ratings and comments to maintain high service quality.
-* 🖼️ **Work Evidence Uploads:** Before/after job photos submitted by service providers for quality control and customer approval.
-* 📊 **Jazzmin Admin Dashboard:** A state-of-the-art admin control panel for handling categories, booking approvals, payments, and users.
-* ✨ **[NEW] Smart Worker Availability Checking:** Prevents booking unverified or offline providers.
-* ✨ **[NEW] Rating-Based Prioritization:** Highest-rated workers are prioritized when automatically assigning bookings.
+* ✅ **Complete booking system:** End-to-end interactive service browsing and booking flow.
+* ✅ **Razorpay payment integration:** Secure, real-time digital payment processing with popup interface.
+* ✅ **Payment confirmation working:** Instant verification and status updates upon successful transaction.
+* ✅ **Booking status tracking:** Comprehensive lifecycle tracking (Pending → Confirmed → Assigned → On Way → In Progress → Completed).
+* ✅ **Service progress bar:** Visual indicators for customers to track their ongoing jobs.
+* ✅ **Area based services (Belagaum):** Location-based matching for optimized local service delivery.
+* ✅ **Customer & Provider dashboards:** Dedicated interfaces for managing bookings, schedules, and profiles.
+* ✅ **Admin panel (Jazzmin):** State-of-the-art backend control for managing users, payments, and approvals.
+* ✅ **Reviews & ratings:** Live testimonial system for verified completed jobs.
+* ✅ **Before/After photo gallery:** Work evidence uploads for quality control and customer trust.
+* ✅ **Mobile responsive design:** Flawless experience across desktops, tablets, and smartphones.
+* ✨ **[NEW] Intelligent Worker Assignment:** Automatic first-come-first-serve assignment preventing double-booking and filtering by availability.
+
+---
+
+## 💳 Test Payment Details
+
+To test the Razorpay payment integration without using real money, you can use the following test credentials during checkout:
+
+* **Test Card:** `4111 1111 1111 1111`
+* **Expiry:** `12/26` (or any future date)
+* **CVV:** `123`
+* **Alternative:** You can also select the **Netbanking** option in the test mode.
 
 ---
 

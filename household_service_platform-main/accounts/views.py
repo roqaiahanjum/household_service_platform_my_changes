@@ -5,6 +5,31 @@ from .forms import CustomerSignUpForm, WorkerSignUpForm, UserUpdateForm, WorkerP
 from .models import User, WorkerProfile
 from bookings.models import Booking, WorkPhoto
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.views import LoginView as DjangoLoginView
+from django.urls import reverse_lazy
+
+class CustomLoginView(DjangoLoginView):
+    def get_success_url(self):
+        user = self.request.user
+        if user.is_authenticated and (user.role == User.Role.ADMIN or user.is_superuser):
+            return reverse_lazy('accounts:dashboard')
+        return super().get_success_url()
+
+class AdminAccessMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path.startswith('/admin/'):
+            if not request.user.is_authenticated:
+                return redirect('accounts:login')
+            if not request.user.is_admin():
+                raise PermissionDenied
+        return self.get_response(request)
+
+
 
 class CustomerSignUpView(CreateView):
     model = User
@@ -42,7 +67,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_template_names(self):
         user = self.request.user
         if user.role == User.Role.ADMIN or user.is_superuser:
-            return ['simple_admin_dashboard.html']
+            return ['accounts/dashboard.html']
         if user.role == User.Role.WORKER:
             return ['accounts/worker_dashboard.html']
         return ['accounts/customer_dashboard.html']
@@ -171,4 +196,62 @@ class WorkerProfileDetailView(DetailView):
         # Pull all reviews written for this worker, prefetching the customer's details for efficiency
         context['reviews'] = worker.reviews_received.select_related('customer').order_by('-created_at')
         return context
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
+@login_required(login_url='accounts:login')
+@require_POST
+def update_worker_status(request, worker_id):
+    if not request.user.is_admin():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    try:
+        data = json.loads(request.body)
+        new_status = data.get('status')
+        if new_status not in ['PENDING', 'VERIFIED', 'REJECTED']:
+            return JsonResponse({'error': 'Invalid status'}, status=400)
+        
+        worker = WorkerProfile.objects.get(id=worker_id)
+        worker.verification_status = new_status
+        worker.save()
+        return JsonResponse({'success': True, 'status': worker.verification_status})
+    except WorkerProfile.DoesNotExist:
+        return JsonResponse({'error': 'Worker not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required(login_url='accounts:login')
+@require_POST
+def assign_worker_view(request, booking_id):
+    if not request.user.is_admin():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    try:
+        data = json.loads(request.body)
+        worker_id = data.get('worker_id')
+        if not worker_id:
+            return JsonResponse({'error': 'Worker ID is required'}, status=400)
+        
+        booking = Booking.objects.get(id=booking_id)
+        worker = User.objects.get(id=worker_id, role=User.Role.WORKER)
+        
+        booking.worker = worker
+        if booking.status in ['PENDING', 'CONFIRMED']:
+            booking.status = 'ASSIGNED'
+        booking.save()
+        
+        return JsonResponse({
+            'success': True,
+            'booking_id': booking.id,
+            'worker_id': worker.id,
+            'worker_name': worker.get_full_name() or worker.username
+        })
+    except Booking.DoesNotExist:
+        return JsonResponse({'error': 'Booking not found'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'error': 'Worker not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
 

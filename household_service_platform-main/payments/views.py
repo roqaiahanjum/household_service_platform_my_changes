@@ -1,5 +1,6 @@
 import json
 import razorpay
+# pyrefly: ignore [missing-import]
 from django.shortcuts import render, get_object_or_404, redirect
 from django.conf import settings
 from django.http import JsonResponse, HttpResponseBadRequest
@@ -85,8 +86,10 @@ def init_payment(request, booking_id):
                 currency='INR',
                 status='pending'
             )
+        except razorpay.errors.BadRequestError as e:
+            return JsonResponse({'error': f'Razorpay Configuration Error: Please check your API keys. Details: {str(e)}'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            return JsonResponse({'error': f'Failed to create order: {str(e)}'}, status=400)
     else:
         razorpay_order_id = payment.razorpay_order_id
         
@@ -98,6 +101,7 @@ def init_payment(request, booking_id):
         'customer_email': booking.customer.email,
         'customer_phone': getattr(booking.customer, 'phone_number', '') or '',
     })
+
 
 @csrf_exempt
 def verify_payment(request):

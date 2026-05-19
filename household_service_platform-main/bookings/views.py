@@ -11,6 +11,39 @@ from .forms import BookingForm
 from services.models import Service
 from django.urls import reverse_lazy, reverse
 from django.contrib import messages
+from django.db.models import Count, Q
+
+def auto_assign_worker(customer, service):
+    """
+    Auto assign logic:
+    1. Get customer's area from their profile
+    2. Find all VERIFIED workers in that area
+    3. Filter only available workers (is_available = True)
+    4. Pick the worker with highest rating first
+    5. If rating is same, pick least busy worker (fewest active bookings)
+    6. Assign that worker to the booking
+    """
+    from accounts.models import WorkerProfile
+    
+    if not hasattr(customer, 'area') or not customer.area:
+        return None
+
+    # Active statuses for counting busy workers
+    active_statuses = ['PENDING', 'CONFIRMED', 'ASSIGNED', 'ON_THE_WAY', 'IN_PROGRESS']
+    
+    # Find all eligible verified workers in the customer's area who are available
+    eligible_profiles = WorkerProfile.objects.filter(
+        service_areas=customer.area,
+        is_available=True,
+        verification_status__iexact='verified',
+        skills__icontains=service.name
+    ).annotate(
+        active_bookings_count=Count('user__assigned_jobs', filter=Q(user__assigned_jobs__status__in=active_statuses))
+    ).order_by('-average_rating', 'active_bookings_count')
+    
+    if eligible_profiles.exists():
+        return eligible_profiles.first().user
+    return None
 
 class BookingCreateView(LoginRequiredMixin, CreateView):
     model = Booking
@@ -40,78 +73,40 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         duration = int(form.cleaned_data['duration'])
         phone = form.cleaned_data['phone_number']
         
-        from datetime import datetime, timedelta
+        from datetime import datetime
         time_obj = datetime.strptime(time_str, '%H:%M').time()
         start_datetime = datetime.combine(date, time_obj)
-        end_datetime = start_datetime + timedelta(hours=duration)
         
-        from accounts.models import WorkerProfile
-        from django.db import transaction
-        import re
+        # 6. Assign that worker to the booking
+        assigned_worker = auto_assign_worker(customer, service)
         
-        with transaction.atomic():
-            # Find eligible workers based on location, availability, verification, and matching skill
-            eligible_profiles = WorkerProfile.objects.select_for_update().filter(
-                service_areas=customer.area,
-                is_available=True,
-                verification_status__iexact='verified',
-                skills__icontains=service.name
-            ).order_by('-average_rating')
-            
-            assigned_worker = None
-            
-            for profile in eligible_profiles:
-                worker = profile.user
-                
-                # Find all active bookings for this worker on this date
-                overlapping = Booking.objects.filter(
-                    worker=worker,
-                    scheduled_datetime__date=date,
-                ).exclude(
-                    status__in=['COMPLETED', 'CANCELLED']
-                )
-                
-                has_overlap = False
-                for b in overlapping:
-                    b_duration = 2 # default fallback
-                    if b.instructions:
-                        m = re.search(r'Duration:\s*(\d+)', b.instructions)
-                        if m:
-                            b_duration = int(m.group(1))
-                    
-                    b_start = b.scheduled_datetime
-                    b_end = b_start + timedelta(hours=b_duration)
-                    
-                    if b_start < end_datetime and b_end > start_datetime:
-                        has_overlap = True
-                        break
-                
-                if not has_overlap:
-                    assigned_worker = worker
-                    break
-            
-            if not assigned_worker:
-                messages.error(self.request, "No workers available at this time.")
-                return redirect('services:category_list')
-
-            form.instance.scheduled_datetime = start_datetime
-            form.instance.instructions = f"Duration: {duration} Hour(s) | Phone: {phone}"
-            form.instance.customer = customer
-            form.instance.service = service
-            form.instance.total_price = service.price_per_unit * duration
+        form.instance.scheduled_datetime = start_datetime
+        form.instance.instructions = f"Duration: {duration} Hour(s) | Phone: {phone}"
+        form.instance.customer = customer
+        form.instance.service = service
+        form.instance.total_price = service.price_per_unit * duration
+        
+        if assigned_worker:
             form.instance.worker = assigned_worker
+            # 7. Change booking status from PENDING to CONFIRMED automatically
+            form.instance.status = 'CONFIRMED'
+            messages.success(self.request, "Your booking is confirmed! Worker will contact you soon")
+        else:
+            form.instance.worker = None
+            # 8. If no worker available in that area, keep status as PENDING and show message
             form.instance.status = 'PENDING'
+            messages.info(self.request, "We will assign a worker soon")
             
-            response = super().form_valid(form)
-            
-            BookingStatusLog.objects.create(
-                booking=self.object,
-                status=self.object.status,
-                notes=f"System automatically assigned {assigned_worker.get_full_name() or assigned_worker.username}"
-            )
-            
-            messages.success(self.request, f"Worker {assigned_worker.get_full_name() or assigned_worker.username} assigned!")
-            return response
+        response = super().form_valid(form)
+        
+        log_notes = f"System automatically assigned {assigned_worker.get_full_name() or assigned_worker.username}" if assigned_worker else "Waiting for manual assignment."
+        BookingStatusLog.objects.create(
+            booking=self.object,
+            status=self.object.status,
+            notes=log_notes
+        )
+        
+        return response
 
 class BookingSuccessView(LoginRequiredMixin, DetailView):
     model = Booking
